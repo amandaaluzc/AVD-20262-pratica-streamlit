@@ -54,10 +54,23 @@ with st.sidebar:
         help="Colore a distribuição pelo gênero (Female ou Male).",
     )
 
-# Mantém só os atletas dentro de todos os intervalos escolhidos
-df_filtrado = df
-for var, (inicio, fim) in intervalos.items():
-    df_filtrado = df_filtrado[df_filtrado[var].between(inicio, fim)]
+
+@st.cache_data
+def filtrar_por_intervalos(dados, intervalos):
+    """Mantém só os atletas dentro de todos os intervalos escolhidos."""
+    filtrado = dados
+    for var, (inicio, fim) in intervalos.items():
+        filtrado = filtrado[filtrado[var].between(inicio, fim)]
+    return filtrado
+
+
+@st.cache_data
+def calcular_correlacao(dados, variaveis):
+    """Matriz de correlação de Spearman entre as variáveis escolhidas."""
+    return dados[variaveis].corr(method="spearman")
+
+
+df_filtrado = filtrar_por_intervalos(df, intervalos)
 
 if df_filtrado.empty:
     st.warning("Nenhum atleta dentro dos intervalos escolhidos. Amplie os filtros.")
@@ -83,7 +96,11 @@ with st.container(border=True):
         )
         if not separar_por_genero:
             fig_hist.update_traces(marker_color=COR_DESTAQUE)
-        fig_hist.update_layout(yaxis_title="atletas", margin=dict(t=10, b=10), height=380)
+        # Barras com cantos arredondados e um pequeno espaço entre elas
+        fig_hist.update_traces(marker_cornerradius=6)
+        fig_hist.update_layout(
+            yaxis_title="atletas", margin=dict(t=10, b=10), height=380, bargap=0.08
+        )
         st.plotly_chart(fig_hist, width="stretch")
 
 # Correlação (heatmap) e leitura rápida (KPIs), lado a lado
@@ -96,9 +113,11 @@ with col_correlacao.container(border=True):
     if len(variaveis) < 2:
         st.warning("Selecione pelo menos 2 variáveis para calcular a correlação.")
     else:
-        corr = df_filtrado[variaveis].corr(method="spearman")
+        corr = calcular_correlacao(df_filtrado, variaveis)
+        # Só o triângulo inferior (com a diagonal): o superior repetiria os mesmos valores
+        corr_triangular = corr.where(np.tril(np.ones(corr.shape, dtype=bool)))
         fig_corr = px.imshow(
-            corr,
+            corr_triangular,
             text_auto=".2f",
             zmin=-1,
             zmax=1,
