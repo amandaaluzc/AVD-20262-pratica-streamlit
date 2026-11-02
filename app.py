@@ -137,7 +137,6 @@ def dashboard_1(df):
     # Correlação (heatmap) e leitura rápida (KPIs), lado a lado
     col_correlacao, col_leitura = st.columns(2)
 
-    corr = None
     with col_correlacao.container(border=True):
         st.subheader("Correlação")
 
@@ -161,28 +160,15 @@ def dashboard_1(df):
     with col_leitura.container(border=True):
         st.subheader("Leitura rápida")
 
-        # Par de variáveis com a maior correlação (em módulo), fora da diagonal
-        if corr is None:
-            maior_correlacao = "—"
-        else:
-            pares = corr.where(np.triu(np.ones(corr.shape, dtype=bool), k=1)).stack()
-            a, b = pares.abs().idxmax()
-            valor = pares[(a, b)]
-            maior_correlacao = f"{a} × {b} ({valor:.2f})"
-
-        n_female = int((df_filtrado["gender"] == "Female").sum())
-        n_male = int((df_filtrado["gender"] == "Male").sum())
-
+        # Grade 2×2, na mesma ordem do rascunho (entregas/)
         kpis = [
             ("Atletas", f"{len(df_filtrado)}"),
             ("Altura média", f"{df_filtrado['height'].mean():.0f} cm"),
-            ("Peso médio", f"{df_filtrado['weight'].mean():.0f} kg"),
             ("Idade média", f"{df_filtrado['age'].mean():.0f} anos"),
-            ("Maior correlação", maior_correlacao),
-            ("Female / Male", f"{n_female} / {n_male}"),
+            ("Peso médio", f"{df_filtrado['weight'].mean():.0f} kg"),
         ]
-        for linha in (kpis[:3], kpis[3:]):
-            for coluna, (rotulo, valor) in zip(st.columns(3), linha):
+        for linha in (kpis[:2], kpis[2:]):
+            for coluna, (rotulo, valor) in zip(st.columns(2), linha):
                 with coluna.container(border=True):
                     st.caption(rotulo)
                     st.markdown(f"**{valor}**")
@@ -264,11 +250,17 @@ def dashboard_2(df):
         st.subheader("Altura × peso")
         dispersao = (
             alt.Chart(df_sel)
-            .mark_circle(size=60, opacity=0.7)
+            .mark_point(size=70, opacity=0.75, filled=True)
             .encode(
                 x=alt.X("height:Q", title="altura (cm)", scale=alt.Scale(zero=False)),
                 y=alt.Y("weight:Q", title="peso (kg)", scale=alt.Scale(zero=False)),
                 color=cor_genero,
+                # Forma além da cor (como no rascunho): triângulo = Female, círculo = Male
+                shape=alt.Shape(
+                    "gender:N",
+                    title="gênero",
+                    scale=alt.Scale(domain=["Female", "Male"], range=["triangle-up", "circle"]),
+                ),
                 tooltip=[
                     alt.Tooltip("name:N", title="atleta"),
                     alt.Tooltip("country:N", title="país"),
@@ -305,18 +297,15 @@ def dashboard_2(df):
 
     # KPIs calculados sobre os atletas selecionados (df_sel)
     imc = df_sel["weight"] / (df_sel["height"] / 100) ** 2  # peso (kg) / altura (m)²
-    amplitude_idade = int(df_sel["age"].max() - df_sel["age"].min())
 
     with area_kpis:
         if paises_clicados:
             st.caption("Mostrando: " + ", ".join(paises_clicados))
-        kpis = st.columns(6)
-        kpis[0].metric("Atletas", f"{len(df_sel)}")
+        kpis = st.columns(4)
+        kpis[0].metric("Nº de atletas", f"{len(df_sel)}")
         kpis[1].metric("Altura média", f"{df_sel['height'].mean():.1f} cm")
         kpis[2].metric("Peso médio", f"{df_sel['weight'].mean():.1f} kg")
-        kpis[3].metric("Idade mediana", f"{df_sel['age'].median():.0f} anos")
-        kpis[4].metric("IMC médio", f"{imc.mean():.1f}")
-        kpis[5].metric("Amplitude de idade", f"{amplitude_idade} anos")
+        kpis[3].metric("IMC médio", f"{imc.mean():.1f}")
 
 
 aba1, aba2 = st.tabs(["Dashboard 1", "Dashboard 2"])
