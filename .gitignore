@@ -245,3 +245,8 @@ data/raw/*
 # Skills do Streamlit (symlinks para o venv; cada aluno roda `streamlit skills`)
 .claude/skills/
 .agents/skills/
+
+# Material de apoio local (não faz parte da entrega)
+esbocos/
+prompts/*.pdf
+docs/
