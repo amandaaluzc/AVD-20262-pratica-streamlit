@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.data_loader import load_data
 
+# [IA] Claude Code – adaptação do app ao dataset de Rugby Sevens (título, VARS_QUANT, cores)
 TITULO = "Atletas das Olimpíadas 2024"
 
 st.set_page_config(page_title=TITULO, layout="wide")
@@ -18,9 +19,11 @@ df = load_data()
 VARS_QUANT = ["height", "weight", "age"]
 
 COR_DESTAQUE = "#2f6f8f"
+# [IA] Claude Code – identidade visual: lilás para Female (cor escolhida por mim) e azul para Male
 CORES_GENERO = {"Female": "#b57edc", "Male": COR_DESTAQUE}
 
 
+# [IA] Claude Code – cache (@st.cache_data) das funções de cálculo, Aula 22
 @st.cache_data
 def filtrar_por_intervalos(dados, intervalos):
     """Mantém só os atletas dentro de todos os intervalos escolhidos."""
@@ -36,6 +39,7 @@ def calcular_correlacao(dados, variaveis):
     return dados[variaveis].corr(method="spearman")
 
 
+# [IA] Claude Code – depuração: faixas de idade calculadas no pandas para corrigir o histograma empilhado
 @st.cache_data
 def contagem_por_faixa_etaria(dados, largura=2):
     """Nº de atletas por faixa de idade (ex.: "26–27") e gênero, e a ordem das faixas."""
@@ -52,6 +56,7 @@ def contagem_por_faixa_etaria(dados, largura=2):
     return contagem, rotulos
 
 
+# [IA] Claude Code – agregação por país para o gráfico de barras do Dashboard 2
 @st.cache_data
 def medias_por_pais(dados):
     """Altura média e nº de atletas de cada país (base das barras do Dashboard 2)."""
@@ -98,6 +103,7 @@ def dashboard_1(df):
             help="Colore a distribuição pelo gênero (Female ou Male).",
         )
 
+    # [IA] Claude Code – aviso de filtro vazio com return, para não travar a aba do Dashboard 2
     df_filtrado = filtrar_por_intervalos(df, intervalos)
 
     # return (e não st.stop()) para não interromper a aba do Dashboard 2
@@ -127,6 +133,7 @@ def dashboard_1(df):
             )
             if not separar_por_genero:
                 fig_hist.update_traces(marker_color=COR_DESTAQUE)
+            # [IA] Claude Code – sintaxe Plotly para arredondar as barras
             # Barras com cantos arredondados e um pequeno espaço entre elas
             fig_hist.update_traces(marker_cornerradius=6)
             fig_hist.update_layout(
@@ -144,6 +151,7 @@ def dashboard_1(df):
             st.warning("Selecione pelo menos 2 variáveis para calcular a correlação.")
         else:
             corr = calcular_correlacao(df_filtrado, variaveis)
+            # [IA] Claude Code – sintaxe numpy/Plotly da matriz triangular
             # Só o triângulo inferior (com a diagonal): o superior repetiria os mesmos valores
             corr_triangular = corr.where(np.tril(np.ones(corr.shape, dtype=bool)))
             fig_corr = px.imshow(
@@ -160,6 +168,7 @@ def dashboard_1(df):
     with col_leitura.container(border=True):
         st.subheader("Leitura rápida")
 
+        # [IA] Claude Code – layout dos KPIs da leitura rápida conforme meu rascunho
         # Grade 2×2, na mesma ordem do rascunho (entregas/)
         kpis = [
             ("Atletas", f"{len(df_filtrado)}"),
@@ -174,6 +183,8 @@ def dashboard_1(df):
                     st.markdown(f"**{valor}**")
 
 
+# [IA] Claude Code – estrutura do Dashboard 2 (filtros, KPIs e gráficos Altair com clique);
+# métricas e layout definidos no meu rascunho (entregas/rascunho-dashboard2.jpg)
 def dashboard_2(df):
     st.subheader("Como as seleções de rugby se comparam em perfil físico e idade?")
 
@@ -213,6 +224,7 @@ def dashboard_2(df):
     with col_barras.container(border=True):
         st.subheader("Altura média por país")
 
+        # [IA] Claude Code – sintaxe Altair de seleção por clique (selection_point + on_select)
         # O clique numa barra seleciona o país; vem para o Python via on_select
         clique = alt.selection_point(name="pais", fields=["country"])
         barras = (
@@ -255,6 +267,7 @@ def dashboard_2(df):
                 x=alt.X("height:Q", title="altura (cm)", scale=alt.Scale(zero=False)),
                 y=alt.Y("weight:Q", title="peso (kg)", scale=alt.Scale(zero=False)),
                 color=cor_genero,
+                # [IA] Claude Code – sintaxe Altair para forma por gênero
                 # Forma além da cor (como no rascunho): triângulo = Female, círculo = Male
                 shape=alt.Shape(
                     "gender:N",
@@ -275,6 +288,7 @@ def dashboard_2(df):
 
     with st.container(border=True):
         st.subheader("Distribuição de idade")
+        # [IA] Claude Code – depuração do histograma de idade (xOffset em vez de barras empilhadas)
         # Barras lado a lado (xOffset): empilhadas, a altura total pareceria ser a de um só gênero
         faixas, ordem_faixas = contagem_por_faixa_etaria(df_sel)
         histograma = (
@@ -308,6 +322,7 @@ def dashboard_2(df):
         kpis[3].metric("IMC médio", f"{imc.mean():.1f}")
 
 
+# [IA] Claude Code – dashboards separados em abas
 aba1, aba2 = st.tabs(["Dashboard 1", "Dashboard 2"])
 
 with aba1:
